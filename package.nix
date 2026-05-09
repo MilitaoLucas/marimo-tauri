@@ -34,7 +34,12 @@ rustPlatform.buildRustPackage {
     webkitgtk_4_1
     glib-networking
   ];
-
+  preFixup = ''
+    gappsWrapperArgs+=(
+      --set WEBKIT_DISABLE_DMABUF_RENDERER 1
+      --set WEBKIT_DISABLE_COMPOSITING_MODE 1
+    )
+  '';
   # cargo-tauri.hook drives `cargo tauri build`; it picks up tauri.conf.json
   # from the source root.
 
