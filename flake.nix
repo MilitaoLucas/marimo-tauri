@@ -20,6 +20,10 @@
       };
     in
     {
+      packages.${system} = {
+        marimo-tauri = pkgs.callPackage ./package.nix { };
+        default = self.packages.${system}.marimo-tauri;
+      };
 
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = with pkgs; [
