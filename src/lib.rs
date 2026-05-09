@@ -8,6 +8,7 @@ use tauri::{
     Manager, WebviewUrl, WebviewWindowBuilder,
     webview::{NewWindowFeatures, NewWindowResponse},
 };
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 const MARIMO_PORT: u16 = 2730;
 const MARIMO_URL: &str = "http://localhost:2730";
@@ -84,6 +85,7 @@ fn build_marimo_window(
 pub fn run() {
     tauri::Builder::default()
         .manage(MarimoProcess(Mutex::new(None)))
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -115,16 +117,43 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                // Kill marimo when the last window is closed (Destroyed fires
-                // after the window is removed from the window list).
-                if window.app_handle().webview_windows().is_empty() {
-                    let state = window.app_handle().state::<MarimoProcess>();
-                    let child = state.0.lock().unwrap().take();
-                    if let Some(mut c) = child {
-                        kill_marimo(&mut c);
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    // If this is the last open window, confirm before stopping marimo
+                    if window.app_handle().webview_windows().len() == 1 {
+                        api.prevent_close();
+                        let win = window.clone();
+                        window.app_handle()
+                            .dialog()
+                            .message("Closing this window will stop the Marimo server.")
+                            .title("Stop Marimo?")
+                            .buttons(MessageDialogButtons::OkCancelCustom(
+                                "Stop Marimo".into(),
+                                "Cancel".into(),
+                            ))
+                            .show(move |confirmed| {
+                                if confirmed {
+                                    let state = win.app_handle().state::<MarimoProcess>();
+                                    let child = state.0.lock().unwrap().take();
+                                    if let Some(mut c) = child {
+                                        kill_marimo(&mut c);
+                                    }
+                                    let _ = win.destroy();
+                                }
+                            });
                     }
                 }
+                tauri::WindowEvent::Destroyed => {
+                    // Fallback: kill marimo if somehow destroyed without going through CloseRequested
+                    if window.app_handle().webview_windows().is_empty() {
+                        let state = window.app_handle().state::<MarimoProcess>();
+                        let child = state.0.lock().unwrap().take();
+                        if let Some(mut c) = child {
+                            kill_marimo(&mut c);
+                        }
+                    }
+                }
+                _ => {}
             }
         })
         .run(tauri::generate_context!())
