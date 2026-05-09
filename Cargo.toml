@@ -1,27 +1,27 @@
 [package]
-name = "app"
+name = "marimo-tauri"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
+description = "An app to use Marimo instead of using it in the browser."
+authors = ["Lucas Militão"]
+license = "MPLv2.0"
 repository = ""
-edition = "2021"
-rust-version = "1.77.2"
+edition = "2024"
+rust-version = "1.85.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
+crate-type = ["cdylib", "rlib", "staticlib"]
 name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tauri = { version = "2.11.0", features = [] }
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-log = "2"
+tauri-plugin-shell = "2.3.5"
 
 [build-dependencies]
 tauri-build = { version = "2.6.0", features = [] }
-
-[dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
-tauri = { version = "2.11.0", features = [] }
-tauri-plugin-log = "2"
-tauri-plugin-shell = "2.3.5"
-tauri-plugin-dialog = "2.7.1"
