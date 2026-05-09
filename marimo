@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+uv run marimo edit --headless --no-token -p 2718

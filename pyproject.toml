@@ -1,0 +1,28 @@
+[project]
+name = "crystallography-notebooks"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "anywidget",
+  "cclib>=1.8.1",
+  "ipympl",
+  "ipywidgets",
+  "jupyter-lsp",
+  "jupyterlab",
+  "jupyterlab-lsp",
+  "jupyterlab-vim",
+  "marimo>=0.23.5",
+  "matplotlib",
+  "msgpack>=1.1.2",
+  "nbformat",
+  "numpy",
+  "pandas",
+  "plotly",
+  "polars",
+  "python-lsp-server[all]",
+  "pyvista[jupyter]",
+  "scipy",
+]
+
+[tool.uv]
+# Keep the resolver strict so wheel versions are pinned via uv.lock
