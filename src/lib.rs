@@ -52,7 +52,7 @@ fn titlebar_script() -> String {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
         if (e.defaultPrevented) return;
         var a = e.target.closest && e.target.closest('a[href]');
-        if (!a || (a.target !== '_blank' && !a.target.includes('__new__')) ) return;
+        if (!a ) return;
         e.preventDefault();
         window.location.href = a.href;
     }}, true);
