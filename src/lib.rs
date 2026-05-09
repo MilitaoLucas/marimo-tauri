@@ -1,4 +1,6 @@
 use std::process::{Child, Command};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
@@ -28,17 +30,20 @@ fn wait_for_server(timeout: Duration) -> bool {
 }
 
 fn spawn_marimo() -> std::io::Result<Child> {
-    Command::new("uv")
-        .args([
-            "run",
-            "marimo",
-            "edit",
-            "--headless",
-            "--no-token",
-            "-p",
-            &MARIMO_PORT.to_string(),
-        ])
-        .spawn()
+    let mut cmd = Command::new("uv");
+    cmd.args(["run", "marimo", "edit", "--headless", "--no-token", "-p", &MARIMO_PORT.to_string()]);
+    // Put the child in its own process group so we can kill the whole tree
+    #[cfg(unix)]
+    cmd.process_group(0);
+    cmd.spawn()
+}
+
+fn kill_marimo(child: &mut Child) {
+    let pgid = child.id();
+    let _ = child.kill();
+    // Kill every process in the group (catches marimo spawned by uv)
+    #[cfg(unix)]
+    let _ = Command::new("kill").args(["-9", &format!("-{pgid}")]).status();
 }
 
 fn build_marimo_window(
@@ -111,11 +116,13 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                if window.label() == "main" {
-                    let state = window.state::<MarimoProcess>();
+                // Kill marimo when the last window is closed (Destroyed fires
+                // after the window is removed from the window list).
+                if window.app_handle().webview_windows().is_empty() {
+                    let state = window.app_handle().state::<MarimoProcess>();
                     let child = state.0.lock().unwrap().take();
                     if let Some(mut c) = child {
-                        let _ = c.kill();
+                        kill_marimo(&mut c);
                     }
                 }
             }
