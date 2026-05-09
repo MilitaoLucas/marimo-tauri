@@ -42,6 +42,21 @@ fn titlebar_script() -> String {
         +       'transform:translateZ(0)!important}}';
     (document.head || document.documentElement).appendChild(st);
 
+    // Marimo opens notebooks via <a target="_blank">, which Tauri routes
+    // to on_new_window. We want plain clicks to navigate in-place (so the
+    // user stays in the main window), and only modifier/middle clicks to
+    // create a new window. Intercept plain left-clicks here; let modified
+    // clicks fall through to Tauri's on_new_window handler.
+    document.addEventListener('click', function(e) {{
+        if (e.button !== 0) return;
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        if (e.defaultPrevented) return;
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a || a.target !== '_blank') return;
+        e.preventDefault();
+        window.location.href = a.href;
+    }}, true);
+
     function buildBar() {{
         if (document.getElementById('__tb__')) return;
         var isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
@@ -155,26 +170,22 @@ fn build_marimo_window(
         .title("Marimo")
         .inner_size(1280.0, 800.0)
         .on_new_window(move |new_url, new_features| {
-            if is_main {
-                if let Some(win) = app_for_popup.get_webview_window("main") {
-                    let url_js = serde_json::to_string(new_url.as_str()).unwrap_or_default();
-                    let _ = win.eval(&format!("window.location.href={url_js}"));
-                }
-                NewWindowResponse::Deny
-            } else {
-                let n = WINDOW_COUNTER.fetch_add(1, Ordering::Relaxed);
-                let lbl = format!("marimo-{n}");
-                match build_marimo_window(
-                    &app_for_popup,
-                    &lbl,
-                    WebviewUrl::External(new_url),
-                    Some(new_features),
-                ) {
-                    Ok(window) => NewWindowResponse::Create { window },
-                    Err(e) => {
-                        eprintln!("failed to open popup window: {e}");
-                        NewWindowResponse::Deny
-                    }
+            // Plain link clicks are intercepted in the title-bar JS and
+            // navigate in-place, so anything reaching here is a user-
+            // initiated new window (ctrl/cmd/middle-click, "open in new
+            // window", or window.open from a popup window).
+            let n = WINDOW_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let lbl = format!("marimo-{n}");
+            match build_marimo_window(
+                &app_for_popup,
+                &lbl,
+                WebviewUrl::External(new_url),
+                Some(new_features),
+            ) {
+                Ok(window) => NewWindowResponse::Create { window },
+                Err(e) => {
+                    eprintln!("failed to open popup window: {e}");
+                    NewWindowResponse::Deny
                 }
             }
         });
