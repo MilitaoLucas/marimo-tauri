@@ -107,8 +107,10 @@ fn titlebar_script() -> String {
         document.documentElement.appendChild(bar);
     }}
 
-    if (document.body) {{ buildBar(); }}
-    else {{ document.addEventListener('DOMContentLoaded', buildBar); }}
+    // documentElement always exists when the init script runs, so we can
+    // build the bar synchronously — this avoids a flicker on navigation
+    // where the new page would otherwise paint once before DOMContentLoaded.
+    buildBar();
 }})();
 "#)
 }
