@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "marimo-remote",
+  "description": "window controls accessible from the marimo local server",
+  "remote": {
+    "urls": ["http://localhost:2730*"]
+  },
+  "windows": ["main", "marimo-*"],
+  "permissions": [
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-start-dragging"
+  ]
+}

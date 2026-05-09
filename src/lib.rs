@@ -52,7 +52,7 @@ fn titlebar_script() -> String {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
         if (e.defaultPrevented) return;
         var a = e.target.closest && e.target.closest('a[href]');
-        if (!a || a.target !== '_blank') return;
+        if (!a || (a.target !== '_blank' && !a.target.includes('__new__')) ) return;
         e.preventDefault();
         window.location.href = a.href;
     }}, true);
@@ -169,6 +169,7 @@ fn build_marimo_window(
     let mut builder = WebviewWindowBuilder::new(app, label, url)
         .title("Marimo")
         .inner_size(1280.0, 800.0)
+        .decorations(false)
         .on_new_window(move |new_url, new_features| {
             // Plain link clicks are intercepted in the title-bar JS and
             // navigate in-place, so anything reaching here is a user-
@@ -193,7 +194,6 @@ fn build_marimo_window(
     if is_main {
         // No native decorations — our injected title bar handles dragging and controls
         builder = builder
-            .decorations(false)
             .initialization_script(&titlebar_script());
     }
 
