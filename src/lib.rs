@@ -144,7 +144,7 @@ fn wait_for_server(timeout: Duration) -> bool {
 
 fn spawn_marimo() -> std::io::Result<Child> {
     let mut cmd = Command::new("uv");
-    cmd.args(["run", "marimo", "edit", "--headless", "--no-token", "-p", &MARIMO_PORT.to_string()]);
+    cmd.args(["run", "marimo", "edit", "--watch", "--headless", "--no-token", "-p", &MARIMO_PORT.to_string()]);
     #[cfg(unix)]
     cmd.process_group(0);
     cmd.spawn()
