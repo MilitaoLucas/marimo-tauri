@@ -38,6 +38,7 @@ rustPlatform.buildRustPackage {
     gappsWrapperArgs+=(
       --set WEBKIT_DISABLE_DMABUF_RENDERER 1
       --set WEBKIT_DISABLE_COMPOSITING_MODE 1
+      --set WEBKIT_FORCE_SANDBOX 0
     )
   '';
   # cargo-tauri.hook drives `cargo tauri build`; it picks up tauri.conf.json
