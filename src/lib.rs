@@ -38,7 +38,7 @@ fn titlebar_script() -> String {
     st.textContent = ''
         + 'html,body{{margin:0!important;padding:0!important}}'
         + 'body{{position:absolute!important;top:36px!important;left:0!important;right:0!important;bottom:0!important;'
-        +       'height:calc(100vh - 36px)!important;width:100vw!important;overflow:auto!important;'
+        +       'height:calc(100vh - 36px)!important;width:100vw!important;overflow:'+(onHomePage()?'auto':'hidden')+'!important;'
         +       'transform:translateZ(0)!important}}';
     (document.head || document.documentElement).appendChild(st);
 

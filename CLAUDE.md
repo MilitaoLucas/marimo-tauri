@@ -37,7 +37,7 @@ Everything lives in `src/lib.rs` (~280 lines). Key pieces:
 
 **Custom title bar** (`titlebar_script()`):
 Injected as an initialization script into the main window only. Native decorations are disabled (`decorations(false)`). The script:
-- Injects CSS that pushes `<body>` down 36 px using `position:absolute` + `transform:translateZ(0)`. The transform is critical — it makes `<body>` the containing block for Marimo's internally `position:fixed` elements, so they respect the 36 px offset. `position:absolute` (not `fixed`) is used so that wheel scroll events bubble through body and `overflow:auto` can catch them.
+- Injects CSS that pushes `<body>` down 36 px using `position:absolute` + `transform:translateZ(0)`. The transform is critical — it makes `<body>` the containing block for Marimo's internally `position:fixed` elements, so they respect the 36 px offset. `position:absolute` (not `fixed`) is used so that wheel scroll events bubble through body. `overflow` on body is `auto` on the home page (so the page scrolls normally) and `hidden` inside a notebook (Marimo manages its own scrolling, avoiding a duplicate scrollbar).
 - Builds a `<div id="__tb__">` attached to `<html>` (not `<body>`) so the bar is outside the transformed body and stays pinned at the true viewport top.
 - Intercepts plain left-clicks on `<a>` tags to navigate in-place; modifier/middle clicks fall through to `on_new_window` and open a new `WebviewWindow`.
 - Shows a "← Home" button only when not on the home page (`/`).
