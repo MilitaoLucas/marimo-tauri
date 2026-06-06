@@ -21,113 +21,20 @@ struct MarimoProcess(Mutex<Option<Child>>);
 // Custom title bar injected into the main window.
 // Replaces native decorations: provides dragging, window controls, and the
 // "← Home" button (visible only when a notebook is open, not on home page).
+//
+// In dev builds, loads dist/titlebar.js from the local file server via
+// synchronous XHR so edits to that file take effect without recompiling Rust.
+// In release builds, the file is embedded at compile time via include_str!.
 fn titlebar_script() -> String {
-    format!(r#"
-(function() {{
-    var HOME = '{MARIMO_URL}/';
-    function onHomePage() {{
-        var h = window.location.href;
-        return h === HOME || h === HOME.slice(0,-1) || h === '{MARIMO_URL}';
-    }}
+    #[cfg(debug_assertions)]
+    return r#"(function() {
+        fetch('http://localhost:1420/titlebar.js')
+            .then(function(r) { return r.text(); })
+            .then(function(code) { (0, eval)(code); });
+    })();"#.to_string();
 
-    // Push marimo's UI below the title bar. Marimo's root uses
-    // position:fixed, so margins/padding don't move it. Apply a transform
-    // to <body> so it becomes the containing block for fixed descendants,
-    // and inset/size body to leave 36px at the top.
-    var st = document.createElement('style');
-    st.textContent = ''
-        + 'html,body{{margin:0!important;padding:0!important}}'
-        + 'body{{position:absolute!important;top:36px!important;left:0!important;right:0!important;bottom:0!important;'
-        +       'height:calc(100vh - 36px)!important;width:100vw!important;overflow:'+(onHomePage()?'auto':'hidden')+'!important;'
-        +       'transform:translateZ(0)!important}}';
-    (document.head || document.documentElement).appendChild(st);
-
-    // Marimo opens notebooks via <a target="_blank">, which Tauri routes
-    // to on_new_window. We want plain clicks to navigate in-place (so the
-    // user stays in the main window), and only modifier/middle clicks to
-    // create a new window. Intercept plain left-clicks here; let modified
-    // clicks fall through to Tauri's on_new_window handler.
-    document.addEventListener('click', function(e) {{
-        if (e.button !== 0) return;
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-        if (e.defaultPrevented) return;
-        var a = e.target.closest && e.target.closest('a[href]');
-        if (!a ) return;
-        e.preventDefault();
-        window.location.href = a.href;
-    }}, true);
-
-    function buildBar() {{
-        if (document.getElementById('__tb__')) return;
-        var isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
-        var bg   = isDark ? '#1e1e1e' : '#f3f3f3';
-        var fg   = isDark ? '#cccccc' : '#333333';
-        var sep  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
-
-        var bar = document.createElement('div');
-        bar.id  = '__tb__';
-        bar.setAttribute('data-tauri-drag-region','');
-        bar.style.cssText = [
-            'position:fixed','top:0','left:0','right:0','height:36px',
-            'z-index:2147483647','display:flex','align-items:center',
-            'background:'+bg,'border-bottom:1px solid '+sep,
-            'user-select:none','-webkit-user-select:none',
-        ].join(';');
-
-        // ← Home button (hidden on home page)
-        if (!onHomePage()) {{
-            var home = document.createElement('button');
-            home.textContent = '← Home';
-            home.style.cssText = [
-                'margin-left:8px','padding:3px 10px','border-radius:5px',
-                'border:none','background:transparent','cursor:pointer',
-                'font-size:12px','font-family:system-ui,sans-serif',
-                'color:'+fg,'pointer-events:all','flex-shrink:0',
-            ].join(';');
-            home.onmouseover = function(){{ this.style.background=isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.07)'; }};
-            home.onmouseout  = function(){{ this.style.background='transparent'; }};
-            home.onclick = function(e){{ e.stopPropagation(); window.location.href=HOME; }};
-            bar.appendChild(home);
-        }}
-
-        // Drag spacer
-        var drag = document.createElement('div');
-        drag.setAttribute('data-tauri-drag-region','');
-        drag.style.cssText = 'flex:1;height:100%;';
-        bar.appendChild(drag);
-
-        // Window controls
-        [
-            {{ sym:'−', tip:'Minimize', fn:function(){{ window.__TAURI__.window.getCurrentWindow().minimize(); }} }},
-            {{ sym:'□', tip:'Maximize', fn:function(){{ window.__TAURI__.window.getCurrentWindow().toggleMaximize(); }} }},
-            {{ sym:'×', tip:'Close',    fn:function(){{ window.__TAURI__.window.getCurrentWindow().close(); }} }},
-        ].forEach(function(c) {{
-            var b = document.createElement('button');
-            b.textContent = c.sym;
-            b.title = c.tip;
-            b.style.cssText = [
-                'width:46px','height:36px','border:none','background:transparent',
-                'cursor:pointer','font-size:14px','display:flex','align-items:center',
-                'justify-content:center','pointer-events:all','color:'+fg,'flex-shrink:0',
-            ].join(';');
-            var isClose = c.tip === 'Close';
-            b.onmouseover = function(){{ this.style.background = isClose ? '#c42b1c' : (isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.07)'); if(isClose) this.style.color='#fff'; }};
-            b.onmouseout  = function(){{ this.style.background='transparent'; this.style.color=fg; }};
-            b.onclick = function(e){{ e.stopPropagation(); c.fn(); }};
-            bar.appendChild(b);
-        }});
-
-        // Attach to <html> so the bar is NOT inside the transformed body
-        // (otherwise the transform would also offset the bar itself).
-        document.documentElement.appendChild(bar);
-    }}
-
-    // documentElement always exists when the init script runs, so we can
-    // build the bar synchronously — this avoids a flicker on navigation
-    // where the new page would otherwise paint once before DOMContentLoaded.
-    buildBar();
-}})();
-"#)
+    #[cfg(not(debug_assertions))]
+    include_str!("../dist/titlebar.js").to_string()
 }
 
 fn wait_for_server(timeout: Duration) -> bool {

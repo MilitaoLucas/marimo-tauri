@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.marimo.tauri",
   "build": {
-    "frontendDist": "dist"
+    "frontendDist": "dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "python3 /home/lucas/nix-projects/marimo-tauri/dev-server.py"
   },
   "app": {
     "withGlobalTauri": true,
