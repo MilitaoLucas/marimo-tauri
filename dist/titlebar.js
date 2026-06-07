@@ -36,7 +36,6 @@
         if (e.defaultPrevented) return;
         var a = e.target.closest && e.target.closest('a[href]');
         if (!a) return;
-        return;
         e.preventDefault();
         window.location.href = a.href;
     }, true);
